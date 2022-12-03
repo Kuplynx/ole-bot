@@ -24,11 +24,15 @@ async def on_ready():
     for channel in bot.get_all_channels():
         cname = channel.name.strip().lower()
         if "general" in cname or "trading" in cname or "price" in cname: # May be changed if needed
-            await channel.send(f"Hello my fellow olers!\n\nRun /ole if you'd like to see the current price of it!")
-            await asyncio.sleep(3600*6) # 6 hours
+            await channel.send(f"Hello my fellow olers!\n\nRun /ole if you'd like to see the current price of it!", delete_after=6*3600) # 6 hours
+    while True:
+        await asyncio.sleep(15)
+        volume, price = await get_stats()
+        await bot.change_presence(activity=discord.CustomActivity(f"OLE: ${price} 24-Hour Volume: {volume}"))
+
 cooldown = commands.Cooldown(per=30, rate=1)
 
-@bot.slash_command(description="Retrieve the current price statistics of OpenLeverage's $OLE token.", cooldown=commands.CooldownMapping(cooldown, commands.BucketType.channel))
+@bot.slash_command(description="Retrieve the current price statistics of OpenLeverage's $OLE token.", cooldown=commands.CooldownMapping(cooldown, commands.BucketType.user))
 async def ole(ctx):
     volume, price = await get_stats()
     timestamp = datetime.datetime.now()
@@ -43,7 +47,7 @@ async def ole(ctx):
     )
     embed.set_footer(text="Made with \u2665 by isaaac", icon_url="https://cdn.discordapp.com/avatars/526880733705404436/1aeccfd1aae2e9fdd83a04da1c9556c5.webp?size=80")
     embed.set_thumbnail(url="https://openleverage.finance/token-icons/OLE_Token_Logo.png")
-    await ctx.respond(embed=embed)
+    await ctx.respond(embed=embed, delete_after=3600) # 1 hour
 
 @ole.error
 async def on_command_error(ctx: commands.Context, error: Exception):
