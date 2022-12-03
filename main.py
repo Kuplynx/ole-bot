@@ -23,7 +23,7 @@ async def get_stats():
         data = await (await client.get(f"https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress=0xa865197a84e780957422237b5d152772654341f3&apikey={bsckey}")).json()
         csupply += int(data["result"]) * 1e-18
         csupply += int(7427908.926180246) # Approximate supply on KCC, still working on finding it through their API, etherscan has no data
-        return str("$" + format(int(volume), ',d')), round(price, 4), int(csupply)
+        return float(volume), float(price), int(csupply)
 
 
 async def repeat(interval, func, *args, **kwargs): # Easy way of having stuff run at an interval
@@ -41,7 +41,7 @@ async def reminder():
 
 async def presence():
     volume, price, _ = await get_stats()
-    await bot.change_presence(activity=discord.Game(f"OLE: ${price} 24-Hour Volume: {volume}"), status=discord.Status.online)
+    await bot.change_presence(activity=discord.Game(f"OLE: ${price:.4f} Volume: ${volume:,.2f} (24hr)"), status=discord.Status.online)
 
 @bot.event
 async def on_ready():
@@ -66,8 +66,8 @@ async def ole(ctx):
         title="$OLE Price Statistics", 
         color=0xad1457,
         fields=[
-            discord.EmbedField("Price", "$" + str(price)), 
-            discord.EmbedField("24-Hour Volume", str(volume)),
+            discord.EmbedField("Price", f"${price:.4f}"), 
+            discord.EmbedField("24-Hour Volume", f"${volume:,.2f}"),
             discord.EmbedField("Circulating Supply", f"{csupply:,.0f} OLE"),
             discord.EmbedField("Market Cap", f"${price*csupply:,.2f}")
             ],
