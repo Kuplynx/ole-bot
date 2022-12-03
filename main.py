@@ -10,6 +10,7 @@ bot = discord.Bot()
 with open("bsckey.txt") as f:
     bsckey = f.read().strip()
 
+
 async def get_stats():
     async with aiohttp.ClientSession() as client:
         data = await(await client.get("https://api.coingecko.com/api/v3/coins/openleverage")).json()
@@ -21,11 +22,11 @@ async def get_stats():
                 volume += market["converted_volume"]["usd"]
         data = await (await client.get(f"https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress=0xa865197a84e780957422237b5d152772654341f3&apikey={bsckey}")).json()
         csupply += int(data["result"]) * 1e-18
-        csupply += int(7427908.926180246) # Approximate supply on KCC, still working on finding it through their API, also working on it from etherscan
+        csupply += int(7427908.926180246) # Approximate supply on KCC, still working on finding it through their API, etherscan has no data
         return str("$" + format(int(volume), ',d')), round(price, 4), int(csupply)
 
 
-async def repeat(interval, func,*args, **kwargs): # Easy way of having stuff run at an interval
+async def repeat(interval, func, *args, **kwargs): # Easy way of having stuff run at an interval
     while True:
         await asyncio.gather(
             func(*args, **kwargs),
@@ -44,7 +45,7 @@ async def presence():
 
 @bot.event
 async def on_ready():
-    print(f"Successfully logged in as {bot.user}\nPlease wait until the bot has a presence to run any commands.")
+    print(f"Successfully logged in as {bot.user}")
     reminder_ = asyncio.ensure_future(repeat(3600*6, reminder))
     presence_ = asyncio.ensure_future(repeat(15, presence))
     await reminder_
@@ -56,6 +57,7 @@ cooldown = commands.Cooldown(per=30, rate=1)
 
 @bot.slash_command(description="Retrieve the current price statistics of OpenLeverage's $OLE token.", cooldown=commands.CooldownMapping(cooldown, commands.BucketType.user))
 async def ole(ctx):
+    await ctx.interaction.response.defer() # Tell Discord we are still working on the response
     volume, price, csupply = await get_stats()
     timestamp = datetime.datetime.now()
     embed = discord.Embed(
@@ -77,8 +79,10 @@ async def ole(ctx):
 
 @ole.error
 async def on_command_error(ctx: commands.Context, error: Exception):
-    print(error)
-    await ctx.respond(f"{ctx.author.mention}\nYou are running /OLE too quickly. \nPlease wait 30s before running /OLE again.", delete_after=5, ephemeral=True)
+    if isinstance(error, discord.ext.commands.errors.CommandOnCooldown):
+        await ctx.respond(f"{ctx.author.mention}\nYou are running /OLE too quickly. \nPlease wait 30s before running /OLE again.", delete_after=10, ephemeral=True)
+    else:
+        await ctx.respond("An unknown error occured. Please contact isaaac#1933.", ephemeral=True)
 
 
 with open("token.txt") as t:
