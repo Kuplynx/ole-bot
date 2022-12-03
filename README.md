@@ -1,1 +1,3 @@
-Will be updated to show market cap once I can find a reliable way to fetch it
+TODO
+ - Fetch Circulating Supply on KCC
+ - Get Approximate Circulating Supply on ETH
