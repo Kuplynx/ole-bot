@@ -52,7 +52,7 @@ async def presence():
     else:
         arrow = DOWN_ARROW
     change = abs(change)
-    await bot.change_presence(activity=discord.Game(f"OLE: ${price:.4f} {arrow}{change:.2f}%"), status=discord.Status.online)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"OLE: ${price:.4f} {arrow}{change:.2f}%"), status=discord.Status.online)
 
 @bot.event
 async def on_ready():
