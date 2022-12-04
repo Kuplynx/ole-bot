@@ -19,17 +19,17 @@ async def get_stats():
         volume = 0
         csupply = 0
         price = data["market_data"]["current_price"]["usd"]
-        daily_high = data["market_data"]["high_24h"]["usd"]
-        daily_low  = data["market_data"]["low_24h"]["usd"]
-        daily_change = data["market_data"]["price_change_percentage_24h"]
-        daily_change_dollars = data["market_data"]["price_change_24h"]
+        daily_high = float(data["market_data"]["high_24h"]["usd"])
+        daily_low  = float(data["market_data"]["low_24h"]["usd"])
+        daily_change = float(data["market_data"]["price_change_percentage_24h"])
+        daily_change_dollars = float(data["market_data"]["price_change_24h"])
         for market in data["tickers"]:
             if market["market"]["name"] != "LBank": # Reports $900,000 trading volume despite not having OLE listed
                 volume += market["converted_volume"]["usd"]
         data = await (await client.get(f"https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress=0xa865197a84e780957422237b5d152772654341f3&apikey={bsckey}")).json()
         csupply += int(data["result"]) * 1e-18
         csupply += int(7427908.926180246) # Approximate supply on KCC, still working on finding it through their API, etherscan has no data
-        return float(volume), float(price), int(csupply), float(daily_low), float(daily_high), float(daily_change), float(daily_change_dollars)
+        return float(volume), float(price), int(csupply), daily_low, daily_high, daily_change, daily_change_dollars
 
 
 async def repeat(interval, func, *args, **kwargs): # Easy way of having stuff run at an interval
@@ -51,6 +51,7 @@ async def presence():
         arrow = UP_ARROW
     else:
         arrow = DOWN_ARROW
+    change = abs(change)
     await bot.change_presence(activity=discord.Game(f"OLE: ${price:.4f} {arrow}{change:.2f}%"), status=discord.Status.online)
 
 @bot.event
@@ -73,6 +74,8 @@ async def ole(ctx: commands.Context):
         arrow = UP_ARROW
     else:
         arrow = DOWN_ARROW
+    change = abs(change)
+    changed = abs(changed)
     timestamp = datetime.datetime.now()
     embed = discord.Embed(
         description="Current price and statistics of $OLE.", 
