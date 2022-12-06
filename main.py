@@ -7,8 +7,8 @@ from discord.ext import commands
 
 bot = discord.Bot()
 
-with open("bsckey.txt") as f:
-    bsckey = f.read().strip()
+with open("ethkey.txt") as f:
+    ethkey = f.read().strip()
 
 UP_ARROW   = "\u2191"
 DOWN_ARROW = "\u2193"
@@ -17,7 +17,7 @@ async def get_stats():
     async with aiohttp.ClientSession() as client:
         data = await(await client.get("https://api.coingecko.com/api/v3/coins/openleverage")).json()
         volume = 0
-        csupply = 0
+        csupply = 1000000000
         price = data["market_data"]["current_price"]["usd"]
         daily_high = float(data["market_data"]["high_24h"]["usd"])
         daily_low  = float(data["market_data"]["low_24h"]["usd"])
@@ -26,9 +26,9 @@ async def get_stats():
         for market in data["tickers"]:
             if market["market"]["name"] != "LBank": # Reports $900,000 trading volume despite not having OLE listed
                 volume += market["converted_volume"]["usd"]
-        data = await (await client.get(f"https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress=0xa865197a84e780957422237b5d152772654341f3&apikey={bsckey}")).json()
-        csupply += int(data["result"]) * 1e-18
-        csupply += int(7427908.926180246) # Approximate supply on KCC, still working on finding it through their API, etherscan has no data
+        addr1 = await (await client.get(f"https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=0x92CfbEC26C206C90aeE3b7C66A9AE673754FaB7e&address=0xE9547CF7E592F83C5141bB50648317e35D27D29B&tag=latest&apikey={ethkey}")).json()
+        addr2 = await (await client.get(f"https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=0x92CfbEC26C206C90aeE3b7C66A9AE673754FaB7e&address=0xa000e438f66fd1c4baa8a9c807c697b0765ef52e&tag=latest&apikey={ethkey}")).json()
+        csupply -= (int(addr1["result"]) + int(addr2["result"])) * 1e-18
         return float(volume), float(price), int(csupply), daily_low, daily_high, daily_change, daily_change_dollars
 
 
@@ -58,15 +58,13 @@ async def presence():
 async def on_ready():
     print(f"Successfully logged in as {bot.user}")
     reminder_ = asyncio.ensure_future(repeat(3600*6, reminder))
-    presence_ = asyncio.ensure_future(repeat(15, presence))
+    presence_ = asyncio.ensure_future(repeat(60, presence))
     await reminder_
     await presence_
 
 
 
-cooldown = commands.Cooldown(per=30, rate=1)
-
-@bot.slash_command(description="Retrieve the current price statistics of OpenLeverage's $OLE token.", cooldown=commands.CooldownMapping(cooldown, commands.BucketType.user))
+@bot.slash_command(description="Retrieve the current price statistics of OpenLeverage's $OLE token.", cooldown=commands.CooldownMapping(commands.Cooldown(per=30, rate=1), commands.BucketType.user))
 async def ole(ctx: commands.Context):
     await ctx.interaction.response.defer() # Tell Discord we are still working on the response
     volume, price, csupply, low, high, change, changed = await get_stats()
