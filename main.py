@@ -58,7 +58,7 @@ async def presence():
 async def on_ready():
     print(f"Successfully logged in as {bot.user}")
     reminder_ = asyncio.ensure_future(repeat(3600*6, reminder))
-    presence_ = asyncio.ensure_future(repeat(60, presence))
+    presence_ = asyncio.ensure_future(repeat(600, presence))
     await presence_, reminder_
 
 
